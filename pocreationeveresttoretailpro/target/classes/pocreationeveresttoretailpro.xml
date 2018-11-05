@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8082" doc:name="HTTP Listener Configuration"/>
+    <db:oracle-config name="Oracle_Configuration" host="10.250.1.11" port="1521" instance="rproods" user="reportuser" password="report" doc:name="Oracle Configuration"/>
+    <http:request-config name="HTTP_Request_Configuration" host="localhost" port="8082" doc:name="HTTP Request Configuration"/>
+    <db:generic-config name="Generic_Database_Configuration" url="jdbc:sqlserver://10.250.1.12:1433;databaseName=everest_robi;user=sa;password=Everest123" driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver" doc:name="Generic Database Configuration"/>
+    <db:generic-config name="Generic_Database_Configuration1" url="jdbc:sqlserver://10.1.0.15;databaseName=everest_robi;user=sa;password=Everest123" driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver" doc:name="Generic Database Configuration"/>
+    <db:oracle-config name="RetailProTest" host="10.1.1.168" port="1521" instance="rproods" user="reportuser" password="report" doc:name="Oracle Configuration"/>
+    <file:connector name="VoucherXMLFile" outputPattern="voucher.xml" writeToDirectory="C:\Users\mschwartz\AnypointStudio\workspace\pocreationeveresttoretailpro\src\test\resources\out" autoDelete="false" outputAppend="true" streaming="false" validateConnections="true" doc:name="File" moveToDirectory="src/test/resources/processed" moveToPattern="voucher.xml" recursive="true"/>
+    <file:connector name="File1" autoDelete="false" streaming="false" validateConnections="true" doc:name="File" moveToDirectory="src/test/resources/processed" outputAppend="true" outputPattern="voucher.xml"/>
+    <file:connector name="input" autoDelete="true" streaming="false" validateConnections="true" doc:name="File" moveToDirectory="src/test/resources/processed" moveToPattern="voucher.xml" outputPattern="voucher.xml" readFromDirectory="src/test/resources/out"/>
+    <file:connector name="output" autoDelete="false" streaming="false" validateConnections="true" doc:name="Output"/>
+
+    <flow name="POCreationEverestToRetailPro" processingStrategy="synchronous">
+        <poll doc:name="Poll">
+            <fixed-frequency-scheduler frequency="1" timeUnit="MINUTES"/>
+            <watermark variable="LastRunDate" default-expression="#[server.dateTime.format(&quot;yyyy-MM-dd HH:mm:ss&quot;)]" selector-expression="#[flowVars.LastRunDate]"/>
+            <db:select config-ref="Generic_Database_Configuration1" doc:name="Everest Database">
+                <db:parameterized-query><![CDATA[select invoices.order_no, invoices.PO, invoices.inv_amount, invoices.DW_UPDATE_DATE, invoices.created_at, X_invoic.STATUS, X_INVOIC.SEQUENCE, x_invoic.ITEM_CODE, x_invoic.item_qty, x_invoic.item_price, x_invoic.qty_ship, items.AVG_COST, items.CUSTCHAR4 
+from invoices, x_invoic, items 
+where invoices.DW_UPDATE_DATE > #[flowVars.LastRunDate] AND invoices.cust_code > '0104400000' and invoices.CUST_CODE < '0104400034'  AND invoices.ORDER_NO = x_invoic.ORDER_NO and x_invoic.ITEM_CODE = items.itemno AND invoices.STATUS = '9'
+	order by invoices.CREATED_AT asc, X_INVOIC.SEQUENCE]]></db:parameterized-query>
+            </db:select>
+        </poll>
+        <set-variable variableName="CurrentPO" value="0" doc:name="Current PO"/>
+        <set-variable variableName="XMLHeader" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;&lt;DOCUMENT&gt;&lt;VOUCHERS&gt;" doc:name="XML Header"/>
+        <set-variable variableName="VOU_TAG" value="0" doc:name="VOU_TAG Flag"/>
+        <set-variable variableName="VOU_ITEMS_TAG" value="0" doc:name="VOU_ITEMS_TAG Flag"/>
+        <logger message="Payload = #[payload]" level="INFO" doc:name="Logger - DEBUG" category="DEBUG"/>
+        <set-variable variableName="VOU_SID_CHK" value="0" doc:name="VOU_SID_CHECK Flag"/>
+        <set-variable variableName="VOU_SID" value="#[0]" doc:name="VOU_SID"/>
+        <logger message="#[' Server Date - ' + server.dateTime.format(&quot;dd-MMM-yy&quot;).toUpperCase()] + #['Last Run Date Time - ' + flowVars['LastRunDate']] + #[' System Date - ' + server.dateTime.format(&quot;yyyy-MM-dd'T'HH:mm:ss&quot;)]" level="INFO" doc:name="Logger - DEBUG" category="DEBUG"/>
+        <foreach doc:name="For Each">
+            <set-variable variableName="currentRecord" value="#[payload]" doc:name="currentRecord"/>
+            <choice doc:name="Choice">
+                <when expression="flowVars.CurrentPO == payload.PO">
+                    <logger message="PO NO  are Equal.  Current PO = #[flowVars.CurrentPO] Payload PO = #[payload.PO]" level="INFO" doc:name="Same PO - DEBUG" category="DEBUG"/>
+                    <flow-ref name="SetEverestVariables" doc:name="Set Everest Variables"/>
+                    <set-variable variableName="PO_EXISTS" value="1" doc:name="PO Exists Flag"/>
+                </when>
+                <otherwise>
+                    <logger message="PO NO are not equal.  Current PO = #[flowVars.CurrentPO] Payload PO = #[payload.PO]" level="INFO" doc:name="Different PO - DEBUG"/>
+                    <flow-ref name="SetEverestVariables" doc:name="Set Everest Variables"/>
+                    <choice doc:name="Choice">
+                        <when expression="flowVars.VOU_TAG == 1">
+                            <choice doc:name="Choice">
+                                <when expression="flowVars.VOU_ITEMS_TAG == 1">
+                                    <set-variable variableName="VOU_END_TAG" value="&lt;/VOU_ITEMS&gt;&lt;/VOUCHER&gt;" doc:name="VOU_END_TAG - Items"/>
+                                </when>
+                                <otherwise>
+                                    <set-variable variableName="VOU_END_TAG" value="&lt;/VOUCHER&gt;" doc:name="VOU_END_TAG"/>
+                                </otherwise>
+                            </choice>
+                            <set-variable variableName="CurrentPayload" value="#[payload]" doc:name="Current Payload"/>
+                            <set-payload value="#[flowVars.VOU_END_TAG]" doc:name="Set Payload"/>
+                            <file:outbound-endpoint path="src/test/resources/out" connector-ref="VoucherXMLFile" responseTimeout="10000" doc:name="File"/>
+                            <set-payload value="#[flowVars.CurrentPayload]" doc:name="Set Payload"/>
+                            <set-variable variableName="VOU_ITEMS_TAG" value="0" doc:name="VOU_ITEMS_TAG"/>
+                        </when>
+                        <otherwise>
+                            <logger message="New Voucher" level="INFO" doc:name="New Voucher - DEBUG" category="DEBUG"/>
+                        </otherwise>
+                    </choice>
+                    <flow-ref name="CheckRetailProPO" doc:name="Check Retail Pro PO"/>
+                </otherwise>
+            </choice>
+            <choice doc:name="Choice">
+                <when expression="flowVars.PO_EXISTS  == 1">
+                    <logger message="PO Number #[flowVars.PO_NUM]" level="WARN" doc:name="PO Exists - DEBUG" category="DEBUG"/>
+                    <flow-ref name="VoucherItemFields" doc:name="Voucher Item Fields"/>
+                </when>
+                <otherwise>
+                    <logger message="#['PO DOES NOT EXIST  - ' + flowVars.PO_NUM]" level="INFO" doc:name="PO Doesn't Exist - DEBUG" category="DEBUG"/>
+                    <logger message="PO Does Not Exist In Retail Pro - Next PO" level="INFO" doc:name="Logger - DEBUG" category="DEBUG"/>
+                </otherwise>
+            </choice>
+            <set-variable variableName="CurrentPO" value="#[flowVars.PO_NUM]" doc:name="Variable"/>
+        </foreach>
+        <choice doc:name="Choice">
+            <when expression="flowVars.VOU_TAG == 1">
+                <logger message="HAVE VOUCHER" level="INFO" doc:name="Have Voucher - DEBUG" category="DEBUG"/>
+                <choice doc:name="Choice">
+                    <when expression="flowVars.VOU_ITEMS_TAG == 1">
+                        <logger message="HAVE ITEMS..." level="INFO" doc:name="Have Items - DEBUG" category="DEBUG"/>
+                        <set-variable variableName="XMLFooter" value="&lt;/VOU_ITEMS&gt;&lt;/VOUCHER&gt;&lt;/VOUCHERS&gt;&lt;/DOCUMENT&gt;" doc:name="XML Footer"/>
+                    </when>
+                    <otherwise>
+                        <logger message="#['Last Run Date Time - ' + flowVars['LastRunDate']] " level="INFO" doc:name="No Items - DEBUG" category="DEBUG"/>
+                        <set-variable variableName="XMLFooter" value="&lt;/VOUCHER&gt;&lt;/VOUCHERS&gt;&lt;/DOCUMENT&gt;" doc:name="XML FOOTER"/>
+                    </otherwise>
+                </choice>
+                <set-payload value="#[flowVars.XMLFooter]" doc:name="Set Payload"/>
+                <file:outbound-endpoint path="src/test/resources/out" connector-ref="VoucherXMLFile" responseTimeout="10000" doc:name="File"/>
+            </when>
+            <otherwise>
+                <logger message="NO VOUCHER CREATED" level="INFO" doc:name="No Voucher - DEBUG" category="DEBUG"/>
+            </otherwise>
+        </choice>
+        <set-variable variableName="LastRunDate" value="#[server.dateTime.format(&quot;yyyy-MM-dd HH:mm:ss&quot;)]" doc:name="Last Run DateTime"/>
+        <logger message="Done...  Going to Poll" level="INFO" doc:name="Logger - DEBUG" category="DEBUG"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <scripting:component doc:name="Groovy">
+                <scripting:script engine="Groovy"><![CDATA[System.out.println("Exception Encoutered ...");
+
+System.out.println("Resetting Back to Last Successful Modified Date:" + flowVars['PreviousModifiedDate']);]]></scripting:script>
+            </scripting:component>
+        </catch-exception-strategy>
+    </flow>
+    <sub-flow name="CheckRetailProPO">
+        <logger message="Checking if PO #[payload.PO] Exists!!!" level="INFO" doc:name="Check Retail Pro PO - DEBUG" category="DEBUG"/>
+        <db:select config-ref="RetailProTest" doc:name="Database">
+            <db:parameterized-query><![CDATA[select * from po where po_no = #[payload.PO]]]></db:parameterized-query>
+        </db:select>
+        <choice doc:name="Choice">
+            <when expression="payload.size()&lt;=0">
+                <logger message="#['PO Does Not Exist - ' +  flowVars.PO_NUM]" level="INFO" category="#['PO Exists - ' +  flowVars.PO_NUM]" doc:name="PO Doesn't Exist - DEBUG"/>
+                <set-variable variableName="PO_EXISTS" value="0" doc:name="PO Doesn't Exist"/>
+            </when>
+            <otherwise>
+                <logger message="#['PO Exists - ' +  flowVars.PO_NUM]" level="INFO" doc:name="PO Exists  - DEBUG" category="DEBUG"/>
+                <set-variable variableName="PO_EXISTS" value="1" doc:name="PO Exists"/>
+                <logger message="Payload after Database Call   = #[payload]" level="INFO" doc:name="Logger - DEBUG" category="DEBUG"/>
+                <set-variable variableName="PO_SID" value="#[message.payload[0]['PO_SID']]" doc:name="PO SID"/>
+                <logger message="PO_SID = #[flowVars.PO_SID] and ALU = #[flowVars.ALU]" level="INFO" doc:name="Logger - DEBUG" category="DEBUG"/>
+                <flow-ref name="VoucherFields" doc:name="Set Voucher XML"/>
+                <flow-ref name="VendorInvoiceXML" doc:name="Set Vendor Invoice XML"/>
+                <flow-ref name="UnusedFieldsXML" doc:name="Unused Fields XML"/>
+            </otherwise>
+        </choice>
+    </sub-flow>
+    <sub-flow name="SetEverestVariables">
+        <logger message="Setting Everest Variables" level="INFO" doc:name="Setting Everest Variables - DEBUG" category="DEBUG"/>
+        <set-variable variableName="VEND_INVC_NUM" value="#[payload.order_no]" doc:name="Vendor Invoice Number"/>
+        <set-variable variableName="VEND_INVC_AMT" value="#[payload.inv_amount]" doc:name="Vendor Invoice Amount"/>
+        <set-variable variableName="AVG_COST" value="#[payload.AVG_COST]" doc:name="AVG_COST"/>
+        <set-variable variableName="PO_NUM" value="#[payload.PO]" doc:name="PO Number"/>
+        <set-variable variableName="VEND_INVC_DATE" value="#[payload.DW_UPDATE_DATE]" doc:name="Vendor Invoice Date"/>
+        <set-variable variableName="ALU" value="#[payload.CUSTCHAR4]" doc:name="ALU"/>
+        <set-variable variableName="ITEM_CODE" value="#[payload.ITEM_CODE]" doc:name="ITEM_CODE"/>
+        <set-variable variableName="ITEM_PRICE" value="#[payload.item_price]" doc:name="ITEM_PRICE"/>
+        <set-variable variableName="QTY_SHIP" value="#[payload.qty_ship]" doc:name="QTY_SHIP"/>
+        <set-variable variableName="ITEM_QTY" value="#[payload.item_qty]" doc:name="ITEM_QTY"/>
+    </sub-flow>
+    <sub-flow name="VoucherFields">
+        <logger message="Voucher Fields" level="INFO" category="DEBUG" doc:name="Voucher Fields  - DEBUG"/>
+		<set-variable variableName="SBS_NO" value="sbs_no=&quot;#[message.payload[0]['SBS_NO']]&quot;" doc:name="SBS_NO"/>
+        <set-variable variableName="STORE_NO" value="store_no=&quot;#[message.payload[0]['STORE_NO']]&quot;" doc:name="STORE_NO"/>
+        <set-variable variableName="VEND_CODE" value="#[message.payload[0]['VEND_CODE']]" doc:name="VEND_CODE"/>
+        <set-variable variableName="PAYEE_CODE" value="payee_code=&quot;#[message.payload[0]['VEND_CODE']]&quot;" doc:name="PAYEE_CODE"/>
+        <set-variable variableName="VEND_ACCT_NO" value="vend_acct_no=&quot;#[message.payload[0]['VEND_ACCT_NO']]&quot;" doc:name="VEND_ACCT_NO"/>
+        <set-variable variableName="STATION" value="0" doc:name="STATION"/>
+        <set-variable variableName="WORKSTATION" value="workstation=&quot;71&quot;" doc:name="WORKSTATION"/>
+        <set-variable variableName="ORIG_STORE_NO" value="orig_store_no=&quot;#[message.payload[0]['STORE_NO']]&quot;" doc:name="ORIG_STORE_NO"/>
+        <set-variable variableName="ORIG_STATION" value="0" doc:name="ORIG_STATION"/>
+        <set-variable variableName="STATUS" value="status=&quot;#[message.payload[0]['STATUS']]&quot;" doc:name="STATUS"/>
+        <set-variable variableName="COST_HANDLING_CODE" value="cost_handling_code=&quot;0&quot;" doc:name="COST_HANDLING_CODE"/>
+        <set-variable variableName="UPDATE_PRICE_FLAG" value="update_price_flag=&quot;0&quot;" doc:name="UPDATE_PRICE_FLAG"/>
+        <set-variable variableName="CREATED_DATE" value="created_date=&quot;#[server.dateTime.format(&quot;yyyy-MM-dd'T'HH:mm:ss&quot;)]&quot;" doc:name="CREATED_DATE"/>
+        <set-variable variableName="MODIFIED_DATE" value="modified_date=&quot;#[server.dateTime.format(&quot;yyyy-MM-dd'T'HH:mm:ss&quot;)]&quot;" doc:name="MODIFIED_DATE"/>
+        <set-variable variableName="POST_DATE" value="post_date=&quot;#[server.dateTime.format(&quot;yyyy-MM-dd'T'HH:mm:ss&quot;)]&quot;" doc:name="POST_DATE"/>
+        <set-variable variableName="ARRIVED_DATE" value="arrived_date=&quot;#[server.dateTime.format(&quot;yyyy-MM-dd'T'HH:mm:ss&quot;)]&quot;" doc:name="ARRIVED_DATE"/>
+        <set-variable variableName="CUST_FLD" value="cust_fld=&quot;#[message.payload[0]['CUST_FLD']]&quot;" doc:name="CUST_FLD"/>
+        <set-variable variableName="CMS_POST_DATE" value="cms_post_date=&quot;#[server.dateTime.format(&quot;yyyy-MM-dd'T'HH:mm:ss&quot;)]&quot;" doc:name="CMS_POST_DATE"/>
+        <choice doc:name="Choice">
+            <when expression="flowVars.VOU_SID_CHK == 0">
+                <db:select config-ref="RetailProTest" doc:name="Database">
+                    <db:parameterized-query><![CDATA[select max(vou_sid) + 1 as vou_sid from voucher where length(vou_sid) = 10]]></db:parameterized-query>
+                </db:select>
+                <set-variable variableName="VOU_SID" value="#[message.payload[0]['VOU_SID']]" doc:name="VOU_SID"/>
+                <choice doc:name="Choice">
+                    <when expression="flowVars.VOU_SID == null">
+                        <logger message="VOU_SID Doesn't Exist #[payload]" level="INFO" doc:name="VOU_SID Doesn't Exist - DEBUG" category="DEBUG"/>
+                        <set-variable variableName="VOU_SID" value="#[1000000000]" doc:name="VOU_SID"/>
+                        <set-variable variableName="VOU_SID_CHK" value="1" doc:name="VOU_SID_CHECK"/>
+                    </when>
+                    <otherwise>
+                        <logger message="VOU_SID Exists 1= #[payload] " level="INFO" doc:name="VOU_SID Exists - DEBUG" category="DEBUG"/>
+                        <logger message="New VOU_SID = #[flowVars.VOU_SID]" level="INFO" doc:name="New VOU_SID - DEBUG" category="DEBUG"/>
+                        <set-variable variableName="VOU_SID_CHK" value="1" doc:name="VOU_SID_CHECK"/>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <set-variable variableName="VOU_SID" value="#[flowVars.VOU_SID +  1]" doc:name="VOU_SID"/>
+            </otherwise>
+        </choice>
+        <set-variable variableName="VoucherXML" value="&lt;VOUCHER vou_sid=&quot;#[flowVars.VOU_SID]&quot; #[flowVars.SBS_NO] #[flowVars.STORE_NO] vou_no=&quot;&quot; vou_type=&quot;0&quot; vou_class=&quot;0&quot; vend_code=&quot;#[flowVars.VEND_CODE]&quot; #[flowVars.PAYEE_CODE] #[flowVars.VEND_ACCT_NO] station=&quot;#[flowVars.STATION]&quot; #[flowVars.WORKSTATION] #[flowVars.ORIG_STORE_NO] orig_station=&quot;#[flowVars.ORIG_STATION]&quot; status=&quot;0&quot; proc_status=&quot;&quot; po_no=&quot;#[flowVars.PO_NUM]&quot; to_no=&quot;&quot; pkg_no=&quot;&quot; shipment_no=&quot;&quot;  #[flowVars.COST_HANDLING_CODE] #[flowVars.UPDATE_PRICE_FLAG] use_vat=&quot;0&quot;  disc_per=&quot;&quot; disc_amt=&quot;&quot; tax_perc_incl=&quot;&quot; tax_amt_incl=&quot;&quot; tax_perc_excl=&quot;&quot; tax_amt_excl=&quot;&quot; #[flowVars.CREATED_DATE] #[flowVars.MODIFIED_DATE] #[flowVars.POST_DATE] #[flowVars.ARRIVED_DATE] #[flowVars.CUST_FLD] ref_vou_sid=&quot;&quot; audited=&quot;0&quot; cms=&quot;1&quot; verified=&quot;0&quot; purch_clear_amt=&quot;&quot; #[flowVars.CMS_POST_DATE] review_date=&quot;&quot; review_note=&quot;&quot; approv_date=&quot;&quot; ws_seq_no=&quot;&quot; held=&quot;0&quot; active=&quot;1&quot; rate=&quot;&quot; controller=&quot;&quot; orig_controller=&quot;&quot; slip_flag=&quot;0&quot; approv_notes=&quot;&quot; approv_status=&quot;&quot; pending_override=&quot;0&quot; tracking_no=&quot;&quot; vend_name=&quot;&quot; contract_date=&quot;&quot; asn_no=&quot;&quot; sub_loc_code=&quot;&quot; subloc_id=&quot;&quot; resolv_status=&quot;&quot; resolv_sid=&quot;&quot; note=&quot;&quot; no_of_pkgs=&quot;1&quot; empl_sbs_no=&quot;1&quot; empl_name=&quot;SYSADMIN&quot; tax_area_name=&quot;&quot; season_code=&quot;&quot; reviewby_sbs_no=&quot;&quot; reviewby_empl_name=&quot;&quot; approvby_sbs_no=&quot;&quot; approvby_empl_name=&quot;&quot; slip_sid=&quot;&quot;  slip_sbs_no=&quot;&quot; ref_vou_no=&quot;&quot; ref_vou_created_date=&quot;&quot; carrier_name=&quot;&quot; createdby_sbs_no=&quot;&quot; createdby_empl_name=&quot;&quot; modifiedby_sbs_no=&quot;&quot; modifiedby_empl_name=&quot;&quot; trans_reason=&quot;&quot; doc_reason_type=&quot;&quot; doc_reason_code=&quot;&quot;&gt;  " doc:name="Voucher XML"/>
+        <set-variable variableName="CurrentPayload" value="#[payload]" doc:name="Current Payload"/>
+        <choice doc:name="Choice">
+            <when expression="flowVars.VOU_TAG == 1">
+                <set-payload value="#[flowVars.VoucherXML]" doc:name="Voucher Payload"/>
+            </when>
+            <otherwise>
+                <set-payload value="#[flowVars.XMLHeader]#[flowVars.VoucherXML]" doc:name="First Voucher Payload"/>
+                <set-variable variableName="VOU_TAG" value="1" doc:name="VOU_TAG"/>
+            </otherwise>
+        </choice>
+        <file:outbound-endpoint path="src/test/resources/out" connector-ref="VoucherXMLFile" responseTimeout="10000" doc:name="File"/>
+        <set-payload value="#[flowVars.CurrentPayload]" doc:name="Set Payload"/>
+    </sub-flow>
+    <sub-flow name="VoucherItemFields">
+        <logger message="Voucher Item Fields" level="INFO" category="DEBUG" doc:name="Voucher Item Fields - DEBUG"/>
+        <choice doc:name="Choice">
+            <when expression="flowVars.ALU  &gt; 0">
+                <db:select config-ref="RetailProTest" doc:name="ALU">
+                    <db:parameterized-query><![CDATA[select po_item.item_pos, po_item.item_sid, po_item.price, po_item.fc_cost,po_item.tax_code, po_item.tax_perc, po_item.tax_code2, po_item.tax_perc2, po_qty.ord_qty, invn_sbs.local_upc, invn_sbs.alu, invn_sbs.style_sid, invn_sbs.dcs_code, invn_sbs.vend_code,invn_sbs.scale_no, invn_sbs.description1, invn_sbs.description2, invn_sbs.description3, invn_sbs.description4, invn_sbs.attr, invn_sbs.siz
+from po_item, po_qty, invn_sbs where po_item.po_sid = #[flowVars.PO_SID] and po_item.po_sid = po_qty.po_sid and po_item.item_sid = invn_sbs.item_sid and invn_sbs.alu = #[flowVars.ALU]]]></db:parameterized-query>
+                </db:select>
+                <logger message="#[flowVars.ALU]" level="INFO" doc:name="Looked Up by ALU - DEBUG" category="DEBUG"/>
+            </when>
+            <otherwise>
+                <db:select config-ref="RetailProTest" doc:name="Item Code">
+                    <db:parameterized-query><![CDATA[select po_item.item_pos, po_item.item_sid, po_item.price, po_item.fc_cost,po_item.tax_code, po_item.tax_perc, po_item.tax_code2, po_item.tax_perc2, po_qty.ord_qty, invn_sbs.local_upc, invn_sbs.alu, invn_sbs.style_sid, invn_sbs.dcs_code, invn_sbs.vend_code,invn_sbs.scale_no, invn_sbs.description1, invn_sbs.description2, invn_sbs.description3, invn_sbs.description4, invn_sbs.attr, invn_sbs.siz
+from po_item, po_qty, invn_sbs where po_item.po_sid = #[flowVars.PO_SID] and po_item.po_sid = po_qty.po_sid and po_item.item_sid = invn_sbs.item_sid and invn_sbs.local_upc = #[flowVars.ITEM_CODE]]]></db:parameterized-query>
+                </db:select>
+                <logger message="Looked Up by Item Code #[flowVars.ITEM_CODE]" level="INFO" doc:name="Looked Up by Item Code - DEBUG" category="DEBUG"/>
+            </otherwise>
+        </choice>
+        <logger message="Logging Payload.... #[payload]" level="INFO" doc:name="Payload  - DEBUG" category="DEBUG"/>
+      	<choice doc:name="Choice">
+        	<when expression="payload.size()&lt;=0">
+                <logger message="Item Does Not Exist on PO next PO..." level="INFO" category="DEBUG" doc:name="Item Not on PO - DEBUG"/>
+            	<set-variable variableName="PO_EXISTS" value="2" doc:name="PO Item Doesn't Exist"/>
+         	</when>
+       		<otherwise>
+                <choice doc:name="Choice">
+                    <when expression="flowVars.VOU_ITEMS_TAG == 0">
+                        <logger message="New Items" level="INFO" doc:name="New Items - DEBUG" category="DEBUG"/>
+                        <set-variable variableName="ITEM_SID" value="#[message.payload[0]['ITEM_SID']]" doc:name="ITEM_SID"/>
+                        <set-variable variableName="VOU_ITEMS_TAG" value="1" doc:name="VOU_ITEMS_TAG"/>
+                        <set-variable variableName="VouItemsXML" value="&lt;VOU_ITEMS&gt;&lt;VOU_ITEM item_pos=&quot;#[message.payload[0]['ITEM_POS']]&quot; item_sid=&quot;#[flowVars.ITEM_SID]&quot; qty=&quot;#[flowVars.QTY_SHIP]&quot; orig_qty=&quot;#[flowVars.ITEM_QTY]&quot; price=&quot;#[flowVars.ITEM_PRICE]&quot; cost=&quot;#[flowVars.ITEM_PRICE]&quot; fc_cost=&quot;&quot; tax_code=&quot;#[message.payload[0]['TAX_CODE']]&quot; tax_perc=&quot;#[message.payload[0]['TAX_PERC']]&quot; tax_code2=&quot;0&quot; tax_perc2=&quot;0&quot; tax_amt_excl=&quot;&quot; tax_amt_incl=&quot;&quot; shipping_amt=&quot;&quot; disc_amt=&quot;&quot; carton_no=&quot;&quot; carton_status=&quot;&quot; cust_fld=&quot;&quot; scan_upc=&quot;&quot; serial_no=&quot;&quot; lot_number=&quot;&quot; udf_value1=&quot;&quot; udf_value2=&quot;&quot; udf_value3=&quot;&quot; udf_value4=&quot;&quot; orig_cost=&quot;&quot; item_note1=&quot;&quot; item_note2=&quot;&quot; item_note3=&quot;&quot; item_note4=&quot;&quot; item_note5=&quot;&quot; item_note6=&quot;&quot; item_note7=&quot;&quot; item_note8=&quot;&quot; item_note9=&quot;&quot; item_note10=&quot;&quot; spread_fee_amt=&quot;&quot; alt_upc=&quot;&quot; alt_alu=&quot;&quot; alt_cost=&quot;&quot; alt_vend_code=&quot;&quot; from_asn=&quot;&quot; subloc_code=&quot;&quot; subloc_id=&quot;&quot; sn_qty=&quot;&quot; sn_active=&quot;&quot; sn_received=&quot;&quot; sn_sold=&quot;&quot; sn_transferred=&quot;&quot; sn_so_reserved=&quot;&quot; sn_returned=&quot;&quot; sn_returned_to_vnd=&quot;&quot; sn_adjusted=&quot;&quot; currency_name=&quot;&quot; tax_area2_name=&quot;&quot; lot_expiry_date=&quot;&quot;&gt;" doc:name="Voucher Items XML"/>
+                        <set-variable variableName="INVC_BASE_XML" value="&lt;INVN_BASE_ITEM item_sid=&quot;#[message.payload[0]['ITEM_SID']]&quot; upc=&quot;#[message.payload[0]['LOCAL_UPC']]&quot; alu=&quot;#[message.payload[0]['ALU']]&quot; style_sid=&quot;#[message.payload[0]['STYLE_SID']]&quot; dcs_code=&quot;#[message.payload[0]['DCS_CODE']]&quot; vend_code=&quot;#[message.payload[0]['VEND_CODE']]&quot; scale_no=&quot;#[message.payload[0]['SCALE_NO']]&quot; description1=&quot;#[message.payload[0]['DESCRIPTION1']]&quot; description2=&quot;#[message.payload[0]['DESCRIPTION2']]&quot; description3=&quot;#[message.payload[0]['DESCRIPTION3']]&quot; description4=&quot;#[message.payload[0]['DESCRIPTION4']]&quot; attr=&quot;#[message.payload[0]['ATTR']]&quot; siz=&quot;#[message.payload[0]['SIZ']]&quot; use_qty_decimals=&quot;0&quot; tax_code=&quot;#[message.payload[0]['TAX_CODE']]&quot; flag=&quot;0&quot; ext_flag=&quot;0&quot; item_no=&quot;#[message.payload[0]['ALU']]&quot; udf3_value=&quot;&quot; udf4_value=&quot;&quot; udf5_value=&quot;&quot; udf6_value=&quot;&quot; aux1_value=&quot;&quot; aux2_value=&quot;&quot; aux3_value=&quot;&quot; aux4_value=&quot;&quot; aux5_value=&quot;&quot; aux6_value=&quot;&quot; aux7_value=&quot;&quot; aux8_value=&quot;&quot;/&gt;&lt;/VOU_ITEM&gt;" doc:name="INVC_BASE_XML"/>
+                        <set-variable variableName="CurrentPayload" value="#[payload]" doc:name="Current Payload"/>
+                        <set-payload value="#[flowVars.VouItemsXML]#[flowVars.INVC_BASE_XML]" doc:name="Set Payload"/>
+                        <file:outbound-endpoint path="src/test/resources/out" connector-ref="VoucherXMLFile" responseTimeout="10000" doc:name="File"/>
+                        <set-payload value="#[flowVars.CurrentPayload]" doc:name="Set Payload"/>
+                    </when>
+                    <otherwise>
+                        <logger message="Continue with Items" level="INFO" doc:name="Continue with Items - DEBUG" category="DEBUG"/>
+                        <set-variable variableName="ITEM_SID" value="#[message.payload[0]['ITEM_SID']]" doc:name="ITEM_SID"/>
+                        <set-variable variableName="VouItemsXML" value="&lt;VOU_ITEM item_pos=&quot;#[message.payload[0]['ITEM_POS']]&quot; item_sid=&quot;#[flowVars.ITEM_SID]&quot; qty=&quot;#[flowVars.QTY_SHIP]&quot; orig_qty=&quot;#[flowVars.ITEM_QTY]&quot; price=&quot;#[flowVars.ITEM_PRICE]&quot; cost=&quot;#[flowVars.ITEM_PRICE]&quot; fc_cost=&quot;&quot; tax_code=&quot;#[message.payload[0]['TAX_CODE']]&quot; tax_perc=&quot;#[message.payload[0]['TAX_PERC']]&quot; tax_code2=&quot;0&quot; tax_perc2=&quot;0&quot; tax_amt_excl=&quot;&quot; tax_amt_incl=&quot;&quot; shipping_amt=&quot;&quot; disc_amt=&quot;&quot; carton_no=&quot;&quot; carton_status=&quot;&quot; cust_fld=&quot;&quot; scan_upc=&quot;&quot; serial_no=&quot;&quot; lot_number=&quot;&quot; udf_value1=&quot;&quot; udf_value2=&quot;&quot; udf_value3=&quot;&quot; udf_value4=&quot;&quot; orig_cost=&quot;&quot; item_note1=&quot;&quot; item_note2=&quot;&quot; item_note3=&quot;&quot; item_note4=&quot;&quot; item_note5=&quot;&quot; item_note6=&quot;&quot; item_note7=&quot;&quot; item_note8=&quot;&quot; item_note9=&quot;&quot; item_note10=&quot;&quot; spread_fee_amt=&quot;&quot; alt_upc=&quot;&quot; alt_alu=&quot;&quot; alt_cost=&quot;&quot; alt_vend_code=&quot;&quot; from_asn=&quot;&quot; subloc_code=&quot;&quot; subloc_id=&quot;&quot; sn_qty=&quot;&quot; sn_active=&quot;&quot; sn_received=&quot;&quot; sn_sold=&quot;&quot; sn_transferred=&quot;&quot; sn_so_reserved=&quot;&quot; sn_returned=&quot;&quot; sn_returned_to_vnd=&quot;&quot; sn_adjusted=&quot;&quot; currency_name=&quot;&quot; tax_area2_name=&quot;&quot; lot_expiry_date=&quot;&quot;&gt;" doc:name="Voucher Items XML"/>
+                        <set-variable variableName="INVC_BASE_XML" value="&lt;INVN_BASE_ITEM item_sid=&quot;#[message.payload[0]['ITEM_SID']]&quot; upc=&quot;#[message.payload[0]['LOCAL_UPC']]&quot; alu=&quot;#[message.payload[0]['ALU']]&quot; style_sid=&quot;#[message.payload[0]['STYLE_SID']]&quot; dcs_code=&quot;#[message.payload[0]['DCS_CODE']]&quot; vend_code=&quot;#[message.payload[0]['VEND_CODE']]&quot; scale_no=&quot;#[message.payload[0]['SCALE_NO']]&quot; description1=&quot;#[message.payload[0]['DESCRIPTION1']]&quot; description2=&quot;#[message.payload[0]['DESCRIPTION2']]&quot; description3=&quot;#[message.payload[0]['DESCRIPTION3']]&quot; description4=&quot;#[message.payload[0]['DESCRIPTION4']]&quot; attr=&quot;#[message.payload[0]['ATTR']]&quot; siz=&quot;#[message.payload[0]['SIZ']]&quot; use_qty_decimals=&quot;0&quot; tax_code=&quot;#[message.payload[0]['TAX_CODE']]&quot; flag=&quot;0&quot; ext_flag=&quot;0&quot; item_no=&quot;#[message.payload[0]['ALU']]&quot; udf3_value=&quot;&quot; udf4_value=&quot;&quot; udf5_value=&quot;&quot; udf6_value=&quot;&quot; aux1_value=&quot;&quot; aux2_value=&quot;&quot; aux3_value=&quot;&quot; aux4_value=&quot;&quot; aux5_value=&quot;&quot; aux6_value=&quot;&quot; aux7_value=&quot;&quot; aux8_value=&quot;&quot;/&gt;&lt;/VOU_ITEM&gt;" doc:name="INVC_BASE_XML"/>
+                        <set-variable variableName="#[payload]" value="" doc:name="Current Payload"/>
+                        <set-payload value="#[flowVars.VouItemsXML]#[flowVars.INVC_BASE_XML]" doc:name="Set Payload"/>
+                        <file:outbound-endpoint path="src/test/resources/out" connector-ref="VoucherXMLFile" responseTimeout="10000" doc:name="File"/>
+                        <set-payload value="#[flowVars.CurrentPayload]" doc:name="Set Payload"/>
+                    </otherwise>
+                </choice>
+         	</otherwise>
+   		</choice>    
+    </sub-flow>
+    <sub-flow name="VendorInvoiceXML">
+        <logger message="Vendor Invoice XML" level="INFO" category="DEBUG" doc:name="Vendor Invoice XML - DEBUG"/>
+        <set-variable variableName="VendInvoiceXML" value="&lt;VEND_INVOICE vend_invc_id=&quot;&quot; sbs_no=&quot;1&quot; vend_code=&quot;#[flowVars.VEND_CODE]&quot; vend_invc_no=&quot;#[flowVars.VEND_INVC_NUM]&quot; vend_invc_date=&quot;#[flowVars.VEND_INVC_DATE]&quot; vend_invc_amt=&quot;#[flowVars.VEND_INVC_AMT]&quot; created_date=&quot;#[server.dateTime.format(&quot;yyyy-MM-dd'T'HH:mm:ss&quot;)]&quot; modified_date=&quot;#[server.dateTime.format(&quot;yyyy-MM-dd'T'HH:mm:ss&quot;)]&quot; cms_post_date=&quot;#[server.dateTime.format(&quot;yyyy-MM-dd'T'HH:mm:ss&quot;)]&quot; resolv_date=&quot;&quot; approv_date=&quot;&quot; po_no=&quot;#[flowVars.PO_NUM]&quot; notes=&quot;&quot; empl_sbs_no=&quot;&quot; empl_name=&quot;&quot; resolv_by_sbs_no=&quot;&quot; resolvby_empl_name=&quot;&quot; approvby_sbs_name=&quot;&quot; approvby_empl_name=&quot;&quot; modifiedby_sbs_no=&quot;&quot; modifiedby_empl_name=&quot;&quot; createdby_sbs_no=&quot;&quot; createdby_empl_name=&quot;&quot; /&gt;" doc:name="Vend Invoice XML"/>
+        <set-variable variableName="CurrentPayload" value="#[payload]" doc:name="Current Payload"/>
+        <set-payload value="#[flowVars.VendInvoiceXML]" doc:name="Set Payload"/>
+        <file:outbound-endpoint path="src/test/resources/out" connector-ref="VoucherXMLFile" responseTimeout="10000" doc:name="File"/>
+        <set-payload value="#[flowVars.CurrentPayload]" doc:name="Set Payload"/>
+    </sub-flow>
+    <sub-flow name="UnusedFieldsXML">
+        <logger message="Unused Fields XML" level="INFO" category="DEBUG" doc:name="Unused Fields XML - DEBUG"/>
+        <set-variable variableName="EMPTY_TABLES_XML" value="&lt;VOU_COMMENTS&gt;&lt;/VOU_COMMENTS&gt;&lt;VOU_FEES&gt;&lt;/VOU_FEES&gt;&lt;VOU_TERMS&gt;&lt;/VOU_TERMS&gt;&lt;VOU_APPROVALS&gt;&lt;/VOU_APPROVALS&gt;&lt;VOU_PACKAGES&gt;&lt;/VOU_PACKAGES&gt;" doc:name="Empty Tables xml"/>
+        <set-variable variableName="CurrentPayload" value="#[payload]" doc:name="Current Payload"/>
+        <set-payload value="#[flowVars.EMPTY_TABLES_XML]" doc:name="Set Payload"/>
+        <file:outbound-endpoint path="src/test/resources/out" connector-ref="VoucherXMLFile" responseTimeout="10000" doc:name="File"/>
+        <set-payload value="#[flowVars.CurrentPayload]" doc:name="Set Payload"/>
+    </sub-flow>
+    <sub-flow name="CheckRetailProVoucherExists">
+        <logger message="Checking if Voucher Exists for PO #[flowVars.PO_NUM]" level="INFO" doc:name="Check Retail Pro Voucher Exists  - DEBUG" category="DEBUG"/>
+        <db:select config-ref="RetailProTest" doc:name="Database">
+            <db:parameterized-query><![CDATA[Select VOU_SID from voucher where po_no = #[flowVars.PO_NUM]]]></db:parameterized-query>
+        </db:select>
+        <choice doc:name="Choice">
+            <when expression="payload.size()&lt;=0">
+                <set-variable variableName="VOU_EXISTS" value="0" doc:name="Voucher Doesn't Exist"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="VOU_EXISTS" value="1" doc:name="Voucher Exists"/>
+                <set-variable variableName="VOU_SID" value="#[message.payload[0]['VOU_SID']]" doc:name="VOU_SID"/>
+            </otherwise>
+        </choice>
+    </sub-flow>
+    <sub-flow name="CheckRetailProVoucherItemExists">
+        <logger message="Checking If Voucher Item Exists.... VOU_SID = #[flowVars.VOU_SID] and ITEM_SID = #[flowVars.ITEM_SID]" level="INFO" doc:name="Check Retail Pro Voucher Item Exists - DEBUG" category="DEBUG"/>
+        <db:select config-ref="RetailProTest" doc:name="Database">
+            <db:parameterized-query><![CDATA[select * from VOU_ITEM where VOU_SID = #[flowVars.VOU_SID] and ITEM_SID = #[flowVars.ITEM_SID]]]></db:parameterized-query>
+        </db:select>
+        <choice doc:name="Choice">
+            <when expression="payload.size()&lt;=0">
+                <logger message="Voucher Item Doesn't Exist.  Going to Create Item......" level="INFO" category="DEBUG" doc:name="Voucher Item Doesn't Exist - DEBUG"/>
+                <set-variable variableName="VOU_ITEM_EXISTS" value="0" doc:name="Voucher Item Doesn't Exist"/>
+                <set-variable variableName="VOU_ITEM_UPDATED" value="0" doc:name="Voucher Item Updated"/>
+            </when>
+            <otherwise>
+                <logger message="Voucher Item Exists" level="INFO" category="DEBUG" doc:name="Voucher Item Exists - DEBUG"/>
+                <set-variable variableName="VOU_ITEM_EXISTS" value="1" doc:name="Voucher Item Exists"/>
+                <choice doc:name="Choice">
+                    <when expression="payload.ORIG_QTY ==  payload.QTY">
+                        <logger message="Voucher Item Already updated.  Skipping...." level="INFO" category="DEBUG" doc:name="Voucher Item Already Updated  - DEBUG"/>
+                        <set-variable variableName="VOU_ITEM_UPDATED" value="1" doc:name="Voucher Item Already Updated"/>
+                    </when>
+                    <otherwise>
+                        <logger message="Voucher Item Exists.  Going to Update Item Qty......" level="INFO" category="DEBUG" doc:name="Voucher Item Needs Updating  - DEBUG"/>
+                        <set-variable variableName="VOU_ITEM_UPDATED" value="2" doc:name="Voucher Item Needs Updating"/>
+                    </otherwise>
+                </choice>
+            </otherwise>
+        </choice>
+    </sub-flow>
+</mule>

@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+   <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+         <!-- XML Schema Generated from XML Document on Thu Aug 09 2018 11:16:40 GMT-0400 (Eastern Daylight Time) -->
+         <!-- with XmlGrid.net Free Online Service http://xmlgrid.net -->
+         <xs:element name="DOCUMENT">
+               <xs:complexType>
+                     <xs:sequence>
+                           <xs:element name="VOUCHERS">
+                                 <xs:complexType>
+                                       <xs:sequence>
+                                             <xs:element name="VOUCHER" maxOccurs="unbounded">
+                                                   <xs:complexType>
+                                                         <xs:sequence>
+                                                               <xs:element name="VEND_INVOICE"></xs:element>
+                                                               <xs:element name="VOU_COMMENTS">
+                                                                     <xs:complexType>
+                                                                           <xs:sequence>
+                                                                                 <xs:element name="VOU_COMMENT">
+                                                                                       <xs:complexType>
+                                                                                             <xs:attribute type="xs:string" name="comments"></xs:attribute>
+                                                                                             <xs:attribute type="xs:int" name="comment_no"></xs:attribute>
+                                                                                       </xs:complexType>
+                                                                                 </xs:element>
+                                                                           </xs:sequence>
+                                                                     </xs:complexType>
+                                                               </xs:element>
+                                                               <xs:element name="VOU_FEES"></xs:element>
+                                                               <xs:element name="VOU_TERMS"></xs:element>
+                                                               <xs:element name="VOU_APPROVALS"></xs:element>
+                                                               <xs:element name="VOU_PACKAGES"></xs:element>
+                                                               <xs:element name="VOU_ITEMS">
+                                                                     <xs:complexType>
+                                                                           <xs:sequence>
+                                                                                 <xs:element name="VOU_ITEM" maxOccurs="unbounded">
+                                                                                       <xs:complexType>
+                                                                                             <xs:sequence>
+                                                                                                   <xs:element name="INVN_BASE_ITEM">
+                                                                                                         <xs:complexType>
+                                                                                                               <xs:attribute type="xs:string" name="vend_code"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:int" name="tax_code"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:int" name="item_sid"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="aux8_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="aux7_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="aux6_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="aux5_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="aux4_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="aux3_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="aux2_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="aux1_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="udf6_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="udf5_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="udf4_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="udf3_value"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:int" name="item_no"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:int" name="ext_flag"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:int" name="flag"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:int" name="use_qty_decimals"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="siz"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:int" name="attr"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="description4"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="description3"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="description2"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="description1"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="scale_no"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:string" name="dcs_code"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:int" name="style_sid"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:int" name="alu"></xs:attribute>
+                                                                                                               <xs:attribute type="xs:int" name="upc"></xs:attribute>
+                                                                                                         </xs:complexType>
+                                                                                                   </xs:element>
+                                                                                             </xs:sequence>
+                                                                                             <xs:attribute type="xs:string" name="subloc_id"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="subloc_code"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="cust_fld"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="tax_amt_excl"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="tax_amt_incl"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="disc_amt"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="lot_expiry_date"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="tax_area2_name"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="currency_name"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="sn_adjusted"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="sn_returned_to_vnd"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="sn_returned"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="sn_so_reserved"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="sn_transferred"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="sn_sold"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="sn_received"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="sn_active"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="sn_qty"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="from_asn"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="alt_vend_code"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="alt_cost"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="alt_alu"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="alt_upc"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="spread_fee_amt"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="item_note10"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="item_note9"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="item_note8"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="item_note7"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="item_note6"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="item_note5"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="item_note4"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="item_note3"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="item_note2"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="item_note1"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="orig_cost"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="udf_value4"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="udf_value3"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="udf_value2"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="udf_value1"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="lot_number"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="serial_no"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="scan_upc"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="carton_status"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="carton_no"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="shipping_amt"></xs:attribute>
+                                                                                             <xs:attribute type="xs:int" name="tax_perc2"></xs:attribute>
+                                                                                             <xs:attribute type="xs:int" name="tax_code2"></xs:attribute>
+                                                                                             <xs:attribute type="xs:double" name="tax_perc"></xs:attribute>
+                                                                                             <xs:attribute type="xs:int" name="tax_code"></xs:attribute>
+                                                                                             <xs:attribute type="xs:string" name="fc_cost"></xs:attribute>
+                                                                                             <xs:attribute type="xs:double" name="cost"></xs:attribute>
+                                                                                             <xs:attribute type="xs:int" name="price"></xs:attribute>
+                                                                                             <xs:attribute type="xs:int" name="orig_qty"></xs:attribute>
+                                                                                             <xs:attribute type="xs:int" name="qty"></xs:attribute>
+                                                                                             <xs:attribute type="xs:int" name="item_sid"></xs:attribute>
+                                                                                             <xs:attribute type="xs:int" name="item_pos"></xs:attribute>
+                                                                                       </xs:complexType>
+                                                                                 </xs:element>
+                                                                           </xs:sequence>
+                                                                     </xs:complexType>
+                                                               </xs:element>
+                                                         </xs:sequence>
+                                                         <xs:attribute type="xs:string" name="doc_reason_code"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="doc_reason_type"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="trans_reason"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="modifiedby_empl_name"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="modifiedby_sbs_no"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="createdby_empl_name"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="createdby_sbs_no"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="carrier_name"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="ref_vou_created_date"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="ref_vou_no"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="slip_sbs_no"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="slip_sid"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="approvby_empl_name"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="approvby_sbs_no"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="reviewby_empl_name"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="reviewby_sbs_no"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="season_code"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="tax_area_name"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="empl_name"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="empl_sbs_no"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="no_of_pkgs"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="note"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="resolv_sid"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="resolv_status"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="subloc_id"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="subloc_code"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="asn_no"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="contract_date"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="vend_name"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="tracking_no"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="pending_override"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="approv_status"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="approv_notes"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="slip_flag"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="orig_controller"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="controller"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="rate"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="active"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="held"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="ws_seq_no"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="approv_date"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="review_note"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="review_date"></xs:attribute>
+                                                         <xs:attribute type="xs:dateTime" name="cms_post_date"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="purch_clear_amt"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="verified"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="cms"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="audited"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="ref_vou_sid"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="cust_fld"></xs:attribute>
+                                                         <xs:attribute type="xs:dateTime" name="arrived_date"></xs:attribute>
+                                                         <xs:attribute type="xs:dateTime" name="post_date"></xs:attribute>
+                                                         <xs:attribute type="xs:dateTime" name="modified_date"></xs:attribute>
+                                                         <xs:attribute type="xs:dateTime" name="created_date"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="tax_amt_excl"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="tax_perc_excl"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="tax_amt_incl"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="tax_perc_incl"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="disc_amt"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="disc_perc"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="use_vat"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="update_price_flag"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="cost_handling_code"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="shipment_no"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="pkg_no"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="to_no"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="po_no"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="proc_status"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="status"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="orig_station"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="orig_store_no"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="workstation"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="station"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="vend_acct_no"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="payee_code"></xs:attribute>
+                                                         <xs:attribute type="xs:string" name="vend_code"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="vou_class"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="vou_type"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="vou_no"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="store_no"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="sbs_no"></xs:attribute>
+                                                         <xs:attribute type="xs:int" name="vou_sid"></xs:attribute>
+                                                   </xs:complexType>
+                                             </xs:element>
+                                       </xs:sequence>
+                                 </xs:complexType>
+                           </xs:element>
+                     </xs:sequence>
+               </xs:complexType>
+         </xs:element>
+   </xs:schema>
+ 
